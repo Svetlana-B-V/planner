@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraTask - Многоуровневый Органайзер с Хакатонами, Счетами и Проектами</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        lightBg: '#f8fafc',
+                        cardBg: 'rgba(255, 255, 255, 0.88)',
+                        cardBorder: 'rgba(226, 232, 240, 0.8)',
+                        accentPrimary: '#6366f1',
+                        accentSecondary: '#ec4899',
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for clean icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Stylesheet Reference -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-screen relative flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+    <div id="seasonBg" class="season-bg season-spring"></div>
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Main App Container -->
+    <div class="relative z-10 container mx-auto px-4 py-6 max-w-7xl flex-grow flex flex-col">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row items-center justify-between gap-4 mb-6 glass-panel p-5 rounded-3xl">
+            <div class="flex items-center space-x-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-pink-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                    <i class="fa-solid fa-layer-group text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-800">AURA<span class="text-indigo-600">TASK</span></h1>
+                    <p class="text-xs text-slate-500 font-medium">Хакатоны &bull; Коммуналка &bull; Работа &bull; Таймлайн &bull; Сезоны</p>
+                </div>
+            </div>
+
+            <!-- Navigation, Season Selector & Controls -->
+            <div class="flex items-center flex-wrap gap-3 w-full md:w-auto justify-end">
+                <!-- Navigation Tabs -->
+                <div class="glass-panel p-1 rounded-2xl flex items-center gap-1 shadow-sm">
+                    <button id="tabTasksBtn" onclick="switchTab('tasks')" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white transition-all shadow-sm">
+                        <i class="fa-solid fa-list-check mr-1"></i> Задачи
+                    </button>
+                    <button id="tabTimelineBtn" onclick="switchTab('timeline')" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:text-indigo-600 transition-all">
+                        <i class="fa-solid fa-timeline mr-1"></i> Таймлайн
+                    </button>
+                </div>
+
+                <!-- Season Selector -->
+                <div class="relative">
+                    <select id="seasonSelect" class="glass-input text-xs font-medium rounded-xl px-3 py-2 text-slate-700 focus:outline-none cursor-pointer shadow-sm">
+                        <option value="auto">🌿 Авто (по сезону)</option>
+                        <option value="spring">🌸 Весна (ручеёк)</option>
+                        <option value="summer">☀️ Лето (лепестки)</option>
+                        <option value="autumn">🍁 Осень (листья)</option>
+                        <option value="winter">❄️ Зима (снежинки)</option>
+                    </select>
+                </div>
+
+                <!-- Search -->
+                <div class="relative flex-grow sm:flex-grow-0">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search text-xs"></i>
+                    </span>
+                    <input type="text" id="searchInput" placeholder="Поиск..." 
+                        class="glass-input text-xs rounded-xl pl-9 pr-4 py-2 w-full sm:w-32 text-slate-700 placeholder-slate-400 focus:outline-none">
+                </div>
+
+                <!-- Toggle Hidden / Collapsed Panel Button -->
+                <button id="toggleHiddenBtn" onclick="toggleHiddenPanel()" title="Спрятанные элементы" 
+                    class="glass-panel hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 p-2 rounded-xl transition-all shadow-sm relative">
+                    <i class="fa-solid fa-eye-slash text-xs"></i>
+                    <span id="hiddenCountBadge" class="absolute -top-1 -right-1 bg-pink-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold hidden">0</span>
+                </button>
+
+                <!-- Clear Completed -->
+                <button id="clearCompletedBtn" title="Очистить выполненные" 
+                    class="glass-panel hover:bg-rose-50 hover:text-rose-600 text-slate-600 p-2 rounded-xl transition-all shadow-sm">
+                    <i class="fa-solid fa-broom text-xs"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="glass-panel p-3 rounded-2xl mb-6 flex items-center justify-between flex-wrap gap-3">
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-700 ml-1 flex items-center gap-1.5">
+                    <i class="fa-solid fa-folder-open text-indigo-600"></i> Проект / Категория:
+                </span>
+            </div>
+            <div class="flex items-center flex-wrap gap-2">
+                <div id="categoryTabs" class="flex items-center flex-wrap gap-2">
+                    <!-- Injected via JS -->
+                </div>
+                <button type="button" onclick="promptAddCategory()" title="Добавить проект" class="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-all text-xs font-bold border border-indigo-200">
+                    <i class="fa-solid fa-plus"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Hidden Archive Collapsed Panel -->
+        <div id="hiddenPanel" class="glass-panel p-4 rounded-3xl mb-6 hidden-el border border-pink-200 bg-pink-50/40 transition-all">
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold text-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-box-archive text-pink-500"></i> Спрятанные / Архивные элементы
+                </h3>
+                <button onclick="toggleHiddenPanel()" class="text-xs text-slate-400 hover:text-slate-700">
+                    <i class="fa-solid fa-xmark"></i> Закрыть
+                </button>
+            </div>
+            <div id="hiddenTasksList" class="space-y-2 max-h-40 overflow-y-auto">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- Statistics Dashboard (Interactive) -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div onclick="filterByStat('all')" class="glass-panel p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-indigo-400 hover:scale-[1.02] transition-all shadow-sm">
+                <div>
+                    <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Всего задач</p>
+                    <h3 id="statTotal" class="text-2xl font-bold text-slate-700 mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
+                    <i class="fa-solid fa-list-check"></i>
+                </div>
+            </div>
+            <div onclick="filterByStat('pending')" class="glass-panel p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-amber-400 hover:scale-[1.02] transition-all shadow-sm">
+                <div>
+                    <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">В работе</p>
+                    <h3 id="statPending" class="text-2xl font-bold text-amber-600 mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                    <i class="fa-solid fa-clock"></i>
+                </div>
+            </div>
+            <div onclick="filterByStat('completed')" class="glass-panel p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-emerald-400 hover:scale-[1.02] transition-all shadow-sm">
+                <div>
+                    <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Готово</p>
+                    <h3 id="statCompleted" class="text-2xl font-bold text-emerald-600 mt-1">0</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                    <i class="fa-solid fa-check-circle"></i>
+                </div>
+            </div>
+            <div onclick="openProgressModal()" class="glass-panel p-4 rounded-2xl flex items-center justify-between cursor-pointer hover:border-pink-400 hover:scale-[1.02] transition-all shadow-sm">
+                <div>
+                    <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider">Прогресс</p>
+                    <h3 id="statProgress" class="text-2xl font-bold text-pink-600 mt-1">0%</h3>
+                </div>
+                <div class="w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center text-pink-600">
+                    <i class="fa-solid fa-chart-pie"></i>
+                </div>
+            </div>
+        </div>
+
+        <div id="tasksViewContainer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow mb-6">
+            
+            <!-- Left: Task Tree & Creation Form (8 columns) -->
+            <div class="lg:col-span-8 flex flex-col gap-6">
+                <!-- Add Task Form -->
+                <div class="glass-panel p-5 rounded-3xl">
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-plus-circle text-indigo-600"></i> Создать задачу / ответвление
+                        </h2>
+                        <span id="currentProjectTitleBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">Проект: Работа</span>
+                    </div>
+                    <form id="taskForm" class="flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="taskInput" placeholder="Введите название задачи, счета или хакатона..." required
+                            class="glass-input rounded-xl px-4 py-3 flex-grow text-slate-700 placeholder-slate-400 focus:outline-none text-sm">
+                        <div class="flex flex-wrap gap-2">
+                            <input type="date" id="taskDateInput" 
+                                class="glass-input rounded-xl px-3 py-3 text-slate-700 focus:outline-none text-xs cursor-pointer">
+                            <select id="taskPriority" class="glass-input rounded-xl px-3 py-3 text-slate-700 focus:outline-none cursor-pointer text-xs">
+                                <option value="low">Низкий</option>
+                                <option value="medium" selected>Средний</option>
+                                <option value="high">Высокий</option>
+                            </select>
+                            <button type="submit" 
+                                class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-3 rounded-xl transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 text-xs">
+                                <i class="fa-solid fa-plus"></i> Добавить
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Task List Area -->
+                <div class="glass-panel p-5 rounded-3xl flex-grow flex flex-col">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-200">
+                        <h2 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-pink-500"></i> Многоуровневое дерево задач
+                        </h2>
+                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <span id="activeFilterLabel" class="text-indigo-600 font-semibold">Все</span>
+                            <span>•</span>
+                            <button type="button" id="filterAll" class="hover:text-slate-800 transition-colors text-indigo-600 font-medium">Все</button>
+                            <span>/</span>
+                            <button type="button" id="filterActive" class="hover:text-slate-800 transition-colors">Активные</button>
+                            <span>/</span>
+                            <button type="button" id="filterCompleted" class="hover:text-slate-800 transition-colors">Готовые</button>
+                        </div>
+                    </div>
+
+                    <!-- Empty State -->
+                    <div id="emptyState" class="hidden flex flex-col items-center justify-center py-12 text-center">
+                        <div class="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 text-2xl mb-3">
+                            <i class="fa-solid fa-seedling"></i>
+                        </div>
+                        <h3 class="text-sm font-semibold text-slate-700 mb-1">Список задач пуст</h3>
+                        <p class="text-xs text-slate-500 max-w-xs">Добавьте новую задачу выше или переключите категорию проекта.</p>
+                    </div>
+
+                    <!-- Nested Tasks Container -->
+                    <div id="taskList" class="space-y-3 flex-grow"></div>
+                </div>
+            </div>
+
+            <!-- Right: Interactive Calendar & Day Inspection (4 columns) -->
+            <div class="lg:col-span-4 flex flex-col gap-6">
+                <div class="glass-panel p-5 rounded-3xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 id="calendarMonthTitle" class="text-sm font-bold text-slate-800">Месяц Год</h3>
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="changeCalendarMonth(-1)" class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-all text-xs">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <button type="button" onclick="changeCalendarMonth(1)" class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 text-slate-600 transition-all text-xs">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Grid -->
+                    <div class="grid grid-cols-7 gap-1 text-center mb-2">
+                        <span class="text-[10px] font-semibold text-slate-400">Пн</span>
+                        <span class="text-[10px] font-semibold text-slate-400">Вт</span>
+                        <span class="text-[10px] font-semibold text-slate-400">Ср</span>
+                        <span class="text-[10px] font-semibold text-slate-400">Чт</span>
+                        <span class="text-[10px] font-semibold text-slate-400">Пт</span>
+                        <span class="text-[10px] font-semibold text-slate-400 text-pink-500">Сб</span>
+                        <span class="text-[10px] font-semibold text-slate-400 text-pink-500">Вс</span>
+                    </div>
+                    <div id="calendarDaysGrid" class="grid grid-cols-7 gap-1 text-center">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Selected Date Tasks Summary Card -->
+                <div class="glass-panel p-5 rounded-3xl flex-grow flex flex-col">
+                    <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-200">
+                        <h4 id="selectedDateHeader" class="text-xs font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-calendar-day text-indigo-600"></i> Задачи на выбранный день
+                        </h4>
+                        <span id="selectedDateBadge" class="text-[10px] bg-indigo-50 text-indigo-600 font-semibold px-2 py-0.5 rounded-full">Сегодня</span>
+                    </div>
+                    <div id="selectedDateTasksList" class="space-y-2 overflow-y-auto max-h-60 flex-grow">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div id="timelineViewContainer" class="glass-panel p-6 rounded-3xl hidden-el flex-grow mb-6 flex flex-col">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 pb-4 border-b border-slate-200 gap-3">
+                <div>
+                    <h2 class="text-md font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-gantt text-indigo-600"></i> Диаграмма Ганта (Активные задачи &bull; Ось X: Даты)
+                    </h2>
+                    <p class="text-xs text-slate-500 mt-1">Наглядное сопоставление незавершенных задач по вертикали с временной шкалой.</p>
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> В процессе</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-indigo-500 inline-block"></span> Наложение дат</span>
+                </div>
+            </div>
+
+            <!-- Gantt Chart Y-Axis (Tasks) vs X-Axis (Dates) Container -->
+            <div class="overflow-x-auto flex-grow pb-4">
+                <div id="ganttChartArea" class="min-w-[850px] flex flex-col">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="progressModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden-el p-4">
+        <div class="glass-panel p-6 rounded-3xl max-w-lg w-full shadow-2xl border border-indigo-100 relative">
+            <div class="flex items-center justify-between mb-5 pb-3 border-b border-slate-200">
+                <h3 class="text-base font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-pink-500"></i> Круговые диаграммы прогресса
+                </h3>
+                <button onclick="closeProgressModal()" class="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50 transition-all">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6 py-2">
+                <!-- Circular Chart 1: Overall Completion -->
+                <div class="flex flex-col sm:flex-row items-center gap-6 bg-white/60 p-4 rounded-2xl border border-slate-200/80">
+                    <div class="relative w-32 h-32 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-slate-200" stroke-width="3.5" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                            <path id="modalCircleProgress" class="text-indigo-600 transition-all duration-1000 ease-out" stroke-dasharray="0, 100" stroke-width="3.5" stroke-linecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <span id="modalProgressPercent" class="text-xl font-extrabold text-slate-800">0%</span>
+                            <span class="text-[10px] text-slate-400 font-medium">Выполнено</span>
+                        </div>
+                    </div>
+                    <div class="flex flex-col justify-center text-center sm:text-left flex-grow">
+                        <h4 class="text-sm font-bold text-slate-700 mb-1">Прогресс по текущему проекту</h4>
+                        <p class="text-xs text-slate-500 mb-3">Соотношение завершенных задач и подзадач в выбранной категории.</p>
+                        <div class="flex items-center justify-center sm:justify-start gap-4 text-xs font-semibold">
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> <span id="modalDoneCount">0</span> готово</span>
+                            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> <span id="modalPendingCount">0</span> в работе</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Priority Distribution Bar -->
+                <div class="bg-white/60 p-4 rounded-2xl border border-slate-200/80">
+                    <h4 class="text-xs font-bold text-slate-700 mb-3">Распределение задач по приоритетам</h4>
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <div class="flex justify-between font-medium text-slate-600 mb-1">
+                                <span>Высокий приоритет</span>
+                                <span id="statHighCount">0</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div id="barHigh" class="bg-rose-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between font-medium text-slate-600 mb-1">
+                                <span>Средний приоритет</span>
+                                <span id="statMedCount">0</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div id="barMed" class="bg-amber-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between font-medium text-slate-600 mb-1">
+                                <span>Низкий приоритет</span>
+                                <span id="statLowCount">0</span>
+                            </div>
+                            <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                                <div id="barLow" class="bg-blue-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-5 pt-3 border-t border-slate-200 flex justify-end">
+                <button onclick="closeProgressModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-xl text-xs transition-all shadow-sm">
+                    Понятно
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-slate-200/80 bg-white/50 backdrop-blur py-5 text-center text-xs text-slate-500">
+        <p>AuraTask &bull; Хакатоны, Коммунальные счета, Рабочие проекты и Таймлайн</p>
+    </footer>
+
+    <!-- Script Reference -->
+    <script src="script.js"></script>
+</body>
+</html>

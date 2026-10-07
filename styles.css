@@ -1,0 +1,81 @@
+/* STREAMING_CHUNK:Styling main body and glassmorphism panels... */
+body {
+font-family: 'Inter', sans-serif;
+background-color: #f0f4f8;
+color: #1e293b;
+overflow-x: hidden;
+transition: background 0.8s ease;
+}
+
+/* Glassmorphism / Pastel Cards */
+.glass-panel {
+background: rgba(255, 255, 255, 0.88);
+backdrop-filter: blur(16px);
+-webkit-backdrop-filter: blur(16px);
+border: 1px solid rgba(226, 232, 240, 0.8);
+box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
+}
+
+.glass-input {
+background: rgba(248, 250, 252, 0.9);
+border: 1px solid #cbd5e1;
+}
+
+.glass-input:focus {
+border-color: #6366f1;
+box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+background: #ffffff;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+width: 6px;
+height: 6px;
+}
+::-webkit-scrollbar-track {
+background: rgba(241, 245, 249, 0.5);
+}
+::-webkit-scrollbar-thumb {
+background: #cbd5e1;
+border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+background: #94a3b8;
+}
+
+/* Background Illustrated Mountains & Nature Art */
+.season-bg {
+position: fixed;
+inset: 0;
+z-index: 0;
+background-size: cover;
+background-position: center bottom;
+opacity: 0.35;
+transition: background-image 1s ease-in-out;
+pointer-events: none;
+}
+
+.season-spring {
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='bg-spring' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23e0f2fe'/%3E%3Cstop offset='100%25' stop-color='%23dcfce7'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1440' height='900' fill='url(%23bg-spring)'/%3E%3Cpath d='M0,600 C300,500 500,700 900,550 C1200,450 1350,580 1440,520 L1440,900 L0,900 Z' fill='%23bbf7d0' opacity='0.7'/%3E%3Cpath d='M0,680 C400,600 700,750 1440,640 L1440,900 L0,900 Z' fill='%2386efac' opacity='0.5'/%3E%3C/svg%3E");
+}
+.season-summer {
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='bg-summer' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23fef08a'/%3E%3Cstop offset='100%25' stop-color='%23bae6fd'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1440' height='900' fill='url(%23bg-summer)'/%3E%3Ccircle cx='1200' cy='180' r='90' fill='%23fde047' opacity='0.6'/%3E%3Cpath d='M0,580 C350,480 600,650 1000,520 C1300,420 1380,550 1440,500 L1440,900 L0,900 Z' fill='%23fed7aa' opacity='0.6'/%3E%3C/svg%3E");
+}
+.season-autumn {
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='bg-autumn' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23ffedd5'/%3E%3Cstop offset='100%25' stop-color='%23fed7aa'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1440' height='900' fill='url(%23bg-autumn)'/%3E%3Cpath d='M0,550 C300,420 600,600 1000,480 C1300,380 1380,500 1440,460 L1440,900 L0,900 Z' fill='%23fdba74' opacity='0.6'/%3E%3C/svg%3E");
+}
+.season-winter {
+background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1440 900' preserveAspectRatio='none'%3E%3Cdefs%3E%3ClinearGradient id='bg-winter' x1='0%25' y1='0%25' x2='0%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f1f5f9'/%3E%3Cstop offset='100%25' stop-color='%23e0f2fe'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='1440' height='900' fill='url(%23bg-winter)'/%3E%3Cpath d='M0,520 C300,380 600,580 1000,450 C1300,350 1380,480 1440,420 L1440,900 L0,900 Z' fill='%23cbd5e1' opacity='0.7'/%3E%3C/svg%3E");
+}
+
+/* Particle Canvas Style */
+#particleCanvas {
+position: fixed;
+inset: 0;
+z-index: 1;
+pointer-events: none;
+}
+
+.hidden-el {
+display: none !important;
+}
