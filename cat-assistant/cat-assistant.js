@@ -1,36 +1,44 @@
-// ... existing code ...
 document.addEventListener('DOMContentLoaded', () => {
     createCatAssistantDOM();
     initCatBehavior();
 });
 
+// Создаем HTML структуру для кота-ассистента
 function createCatAssistantDOM() {
     if (document.getElementById('catAssistantContainer')) return;
-
+    
     const container = document.createElement('div');
     container.id = 'catAssistantContainer';
+    // Используем готовые предоставленные картинки
     container.innerHTML = `
         <div id="catThoughtBubble">
-            <span id="catMessageText">Мур! Я проверяю задачи, дедлайн которых наступит через 2 дня...</span>
+            <span id="catMessageText">Мур! Ищу задачи...</span>
         </div>
-        <div id="catSpriteWrapper" title="Кот Ниндзя - Ваш помощник по дедлайнам">
-            <img id="catSpriteImg" src="cat-assistant/img/Gemini_Generated_Image_lcth9glcth9glcth (4)-no-bg-preview (carve.photos).png" alt="Кот ассистент" style="width: 120px; height: auto;" />
+        <div id="catSpriteWrapper" title="Кот Ниндзя - Ваш помощник">
+            <img id="catSpriteImg" src="cat-assistant/img/Gemini_Generated_Image_lcth9glcth9glcth (4)-no-bg-preview (carve.photos).png" alt="Кот" style="width: 120px; height: auto;" />
         </div>
     `;
     document.body.appendChild(container);
 }
 
+// Инициализируем логику движения и напоминаний
 function initCatBehavior() {
     const container = document.getElementById('catAssistantContainer');
     const msgEl = document.getElementById('catMessageText');
     const spriteImg = document.getElementById('catSpriteImg');
-
+    
     if (!container || !msgEl || !spriteImg) return;
 
-    let positionPercent = 15;
-    let direction = 1;
+    // Переменные для расчета плавного движения
+    let xPos = 0;
+    let direction = 1; // 1 = вправо, -1 = влево
     let isSitting = false;
+    let speed = 90; // Скорость в пикселях в секунду
+    
+    let lastTime = performance.now();
+    let lastFrameTime = lastTime;
 
+    // Массив кадров анимации ходьбы
     const walkFrames = [
         "Gemini_Generated_Image_lcth9glcth9glcth (4)-no-bg-preview (carve.photos).png",
         "Gemini_Generated_Image_lcth9glcth9glcth (3)-no-bg-preview (carve.photos).png",
@@ -41,107 +49,105 @@ function initCatBehavior() {
     let currentWalkFrameIndex = 0;
     const sitPoseImg = "7.png";
 
-    setInterval(() => {
+    // Главный цикл анимации (60fps)
+    function animateCat(time) {
+        // Вычисляем разницу во времени для независимой от частоты кадров скорости
+        const dt = (time - lastTime) / 1000;
+        lastTime = time;
+
         if (!isSitting) {
-            positionPercent += direction * 2;
-            if (positionPercent > 80) {
-                direction = -1;
+            // Передвигаем контейнер
+            xPos += speed * direction * dt;
+            const maxW = window.innerWidth - (spriteImg.offsetWidth || 120);
+
+            // Обработка столкновения с краями экрана
+            if (xPos >= maxW) {
+                xPos = maxW; 
+                direction = -1; 
                 spriteImg.style.transform = 'scaleX(-1)';
-            } else if (positionPercent < 10) {
-                direction = 1;
+            } else if (xPos <= 0) {
+                xPos = 0; 
+                direction = 1; 
                 spriteImg.style.transform = 'scaleX(1)';
             }
-            container.style.left = positionPercent + '%';
+            // Используем translate3d для аппаратного ускорения видеокартой
+            container.style.transform = `translate3d(${xPos}px, 0, 0)`;
 
-            currentWalkFrameIndex = (currentWalkFrameIndex + 1) % walkFrames.length;
-            spriteImg.src = `cat-assistant/img/${walkFrames[currentWalkFrameIndex]}`;
+            // Смена спрайта для имитации ходьбы (каждые 120мс)
+            if (time - lastFrameTime > 120) {
+                lastFrameTime = time;
+                currentWalkFrameIndex = (currentWalkFrameIndex + 1) % walkFrames.length;
+                spriteImg.src = `cat-assistant/img/${walkFrames[currentWalkFrameIndex]}`;
+            }
         }
-    }, 400);
+        
+        requestAnimationFrame(animateCat);
+    }
+    
+    // Запускаем плавную анимацию
+    requestAnimationFrame(animateCat);
 
+    // Случайная остановка (кот садится отдохнуть)
     setInterval(() => {
-        if (Math.random() > 0.7 && !isSitting) {
+        if (Math.random() > 0.6 && !isSitting) {
             isSitting = true;
             spriteImg.src = `cat-assistant/img/${sitPoseImg}`;
-            setTimeout(() => {
-                isSitting = false;
-            }, 3000 + Math.random() * 4000);
+            // Сидит случайное время от 3 до 8 секунд
+            setTimeout(() => { isSitting = false; }, 3000 + Math.random() * 5000);
         }
-    }, 15000);
+    }, 12000);
 
+    // Функция проверки горящих задач
     function checkUrgentTasks() {
         try {
             const projects = JSON.parse(localStorage.getItem('auratask_projects'));
             if (!projects) return;
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            const today = new Date(); today.setHours(0, 0, 0, 0);
             let urgentTasks = [];
 
-            for (const key in projects) {
-                const proj = projects[key];
-                if (proj && proj.tasks) {
-                    collectUrgent(proj.tasks, today, urgentTasks);
+            // Рекурсивный поиск горящих задач
+            const collect = (tasks) => tasks.forEach(t => {
+                if (!t.completed && !t.hidden && t.endDate) {
+                    const diffDays = Math.ceil((new Date(t.endDate).getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays <= 2) urgentTasks.push(t);
                 }
-            }
+                if (t.subtasks) collect(t.subtasks);
+            });
+            Object.values(projects).forEach(p => collect(p.tasks || []));
 
             if (urgentTasks.length > 0) {
                 const randomTask = urgentTasks[Math.floor(Math.random() * urgentTasks.length)];
-                msgEl.innerHTML = `<b>Мур!</b> Срок задачи <i>"${randomTask.text}"</i> истекает (${randomTask.endDate || randomTask.date})! Пора за работу! 🐾`;
+                msgEl.innerHTML = `<b>Мур!</b> Срок задачи <i>"${randomTask.text}"</i> истекает! Пора за работу! 🐾`;
                 
-                isSitting = true;
+                // Обязательно садится при уведомлении
+                isSitting = true; 
                 spriteImg.src = `cat-assistant/img/${sitPoseImg}`;
-                setTimeout(() => { isSitting = false; }, 6000);
-
+                setTimeout(() => { isSitting = false; }, 7000);
             } else {
-                const chillPhrases = [
-                    "Мур-мяу! Все дедлайны под контролем, лапки чисты!",
-                    "Шуршу хвостиком... Ближайшие 2 дня горящих задач нет.",
-                    "Мур! Не забудьте проверить таймлайн и отдохнуть.",
-                    "Мяу! Отличная работа, все задачи вовремя!"
+                const phrases = [
+                    "Мур-мяу! Все дедлайны под контролем!", 
+                    "Шуршу лапками... Горящих задач нет.", 
+                    "Мяу! Отличная работа!"
                 ];
-                msgEl.textContent = chillPhrases[Math.floor(Math.random() * chillPhrases.length)];
+                msgEl.textContent = phrases[Math.floor(Math.random() * phrases.length)];
             }
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     }
 
-    function collectUrgent(tasks, today, resultList) {
-        tasks.forEach(t => {
-            if (!t.completed && !t.hidden && t.endDate) {
-                const endDate = new Date(t.endDate);
-                endDate.setHours(0, 0, 0, 0);
-
-                const diffTime = endDate.getTime() - today.getTime();
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-                if (diffDays <= 2) {
-                    resultList.push(t);
-                }
-            }
-            if (t.subtasks && t.subtasks.length > 0) {
-                collectUrgent(t.subtasks, today, resultList);
-            }
-        });
-    }
-
+    // Первичная и периодическая проверка
     setTimeout(checkUrgentTasks, 2000);
     setInterval(checkUrgentTasks, 15000);
 
+    // Взаимодействие по клику
     spriteImg.onclick = () => {
         checkUrgentTasks();
         isSitting = true;
         spriteImg.src = `cat-assistant/img/${sitPoseImg}`;
-        spriteImg.style.transform = spriteImg.style.transform.includes('scaleX(-1)') 
-            ? 'scaleX(-1) scale(1.1)' 
-            : 'scaleX(1) scale(1.1)';
-            
+        // Легкое увеличение при клике
+        spriteImg.style.transform = `scaleX(${direction}) scale(1.1)`;
         setTimeout(() => { 
-            spriteImg.style.transform = spriteImg.style.transform.includes('scaleX(-1)') 
-                ? 'scaleX(-1)' 
-                : 'scaleX(1)';
+            spriteImg.style.transform = `scaleX(${direction})`; 
             isSitting = false; 
         }, 3000);
     };
 }
-// ... existing code ...
