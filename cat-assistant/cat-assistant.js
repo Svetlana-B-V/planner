@@ -42,7 +42,6 @@ function initCatBehavior() {
     const walkFrames = [
         "Gemini_Generated_Image_lcth9glcth9glcth (4)-no-bg-preview (carve.photos).png",
         "Gemini_Generated_Image_lcth9glcth9glcth (3)-no-bg-preview (carve.photos).png",
-        "Gemini_Generated_Image_lcth9glcth9glcth (2)-edited-free (carve.photos).jpg",
         "Gemini_Generated_Image_lcth9glcth9glcth (1)-no-bg-preview (carve.photos).png",
         "Gemini_Generated_Image_lcth9glcth9glcth-edited-free (carve.photos).png"
     ];

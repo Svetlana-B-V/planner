@@ -95,7 +95,7 @@
             </div>
         </header>
 
-        <!-- Вкладки проектов -->
+        <!-- Вкладки проектов с кнопкой удаления группы -->
         <div class="glass-panel p-3 rounded-2xl mb-6 flex items-center justify-between flex-wrap gap-3">
             <div class="flex items-center gap-2">
                 <span class="text-xs font-bold text-slate-700 ml-1 flex items-center gap-1.5">
@@ -106,6 +106,9 @@
                 <div id="categoryTabs" class="flex items-center flex-wrap gap-2"></div>
                 <button type="button" onclick="promptAddCategory()" title="Добавить проект" class="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 flex items-center justify-center transition-all text-xs font-bold border border-indigo-200">
                     <i class="fa-solid fa-plus"></i>
+                </button>
+                <button type="button" onclick="confirmDeleteCurrentCategory()" title="Удалить текущий проект" class="w-8 h-8 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center transition-all text-xs font-bold border border-rose-200">
+                    <i class="fa-solid fa-trash-can"></i>
                 </button>
             </div>
         </div>
@@ -155,7 +158,7 @@
         <div id="tasksViewContainer" class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow mb-6">
             
             <div class="lg:col-span-8 flex flex-col gap-6">
-                <!-- Форма быстрого создания задачи -->
+                <!-- Форма создания задачи -->
                 <div class="glass-panel p-5 rounded-3xl">
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-sm font-semibold text-slate-700 flex items-center gap-2">
@@ -163,15 +166,32 @@
                         </h2>
                         <span id="currentProjectTitleBadge" class="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100">...</span>
                     </div>
-                    <!-- Добавлена кнопка вызова расширенного модального окна для новых задач -->
-                    <div class="flex gap-3">
-                        <input type="text" id="quickTaskInput" placeholder="Введите название задачи и нажмите Enter..." 
-                            class="glass-input rounded-xl px-4 py-3 flex-grow text-slate-700 placeholder-slate-400 focus:outline-none text-sm"
-                            onkeypress="if(event.key === 'Enter') addQuickTask()">
-                        <button onclick="openTaskModal(false)" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-3 rounded-xl transition-all shadow-md shadow-indigo-500/20 text-xs whitespace-nowrap">
-                            <i class="fa-solid fa-sliders"></i> Детально
-                        </button>
-                    </div>
+                    <form id="taskForm" class="flex flex-col gap-3">
+                        <input type="text" id="taskInput" placeholder="Введите название задачи..." required class="glass-input rounded-xl px-4 py-3 w-full text-slate-700 placeholder-slate-400 focus:outline-none text-sm">
+                        <div class="flex flex-wrap items-center gap-3">
+                            <div class="flex items-center gap-2 bg-white/60 border border-slate-200 px-3 py-2 rounded-xl">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">С:</span>
+                                <input type="date" id="taskDateInput" required class="bg-transparent text-slate-700 focus:outline-none text-xs cursor-pointer">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase ml-2">По:</span>
+                                <input type="date" id="taskEndDateInput" required class="bg-transparent text-slate-700 focus:outline-none text-xs cursor-pointer">
+                            </div>
+                            
+                            <select id="taskPriority" class="glass-input rounded-xl px-3 py-3 text-slate-700 focus:outline-none cursor-pointer text-xs">
+                                <option value="low">Низкий</option>
+                                <option value="medium" selected>Средний приоритет</option>
+                                <option value="high">Высокий</option>
+                            </select>
+
+                            <div class="flex items-center gap-2 glass-input px-3 py-2 rounded-xl">
+                                <span class="text-[10px] font-bold text-slate-400 uppercase">Цвет</span>
+                                <input type="color" id="taskColorInput" value="#6366f1" class="w-6 h-6 border-0 bg-transparent cursor-pointer rounded overflow-hidden">
+                            </div>
+
+                            <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2.5 rounded-xl transition-all shadow-md shadow-indigo-500/20 flex items-center justify-center gap-2 text-xs flex-grow sm:flex-grow-0">
+                                <i class="fa-solid fa-plus"></i> Добавить
+                            </button>
+                        </div>
+                    </form>
                 </div>
 
                 <div class="glass-panel p-5 rounded-3xl flex-grow flex flex-col">
@@ -233,7 +253,7 @@
         </div>
     </div>
 
-    <!-- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ / РЕДАКТИРОВАНИЯ ЗАДАЧИ -->
+    <!-- Модальное окно настройки задачи -->
     <div id="taskActionModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden-el p-4">
         <div class="glass-panel p-6 rounded-3xl max-w-md w-full shadow-2xl border border-indigo-100 relative">
             <h3 id="modalActionTitle" class="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -246,7 +266,6 @@
                     <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Название задачи</label>
                     <input type="text" id="modalTaskName" class="glass-input w-full rounded-xl px-3 py-2 text-sm" required>
                 </div>
-                <!-- Выбор диапазона дат -->
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Дата начала</label>
@@ -266,7 +285,6 @@
                             <option value="high">Высокий</option>
                         </select>
                     </div>
-                    <!-- Выбор цвета для таймлайна -->
                     <div>
                         <label class="block text-[10px] uppercase font-bold text-slate-500 mb-1">Цвет на таймлайне</label>
                         <input type="color" id="modalTaskColor" class="w-full h-9 p-0 border-0 rounded-xl cursor-pointer" value="#6366f1">
@@ -277,6 +295,21 @@
                     <button type="submit" class="px-5 py-2 text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-500 rounded-xl shadow-sm transition-all">Сохранить</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения удаления группы -->
+    <div id="deleteCategoryModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm hidden-el p-4">
+        <div class="glass-panel p-6 rounded-3xl max-w-sm w-full shadow-2xl border border-rose-100 relative text-center">
+            <div class="w-14 h-14 rounded-full bg-rose-50 text-rose-500 flex items-center justify-center text-2xl mx-auto mb-3 border border-rose-100">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="text-base font-bold text-slate-800 mb-1">Удалить проект?</h3>
+            <p id="deleteCategoryPromptText" class="text-xs text-slate-500 mb-5">Вы уверены, что хотите удалить этот проект со всеми вложенными задачами? Это действие необратимо.</p>
+            <div class="flex justify-center gap-2">
+                <button type="button" onclick="closeDeleteCategoryModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-all">Отмена</button>
+                <button type="button" onclick="executeDeleteCurrentCategory()" class="px-5 py-2 text-xs font-semibold bg-rose-600 text-white hover:bg-rose-500 rounded-xl shadow-sm transition-all">Удалить</button>
+            </div>
         </div>
     </div>
 
