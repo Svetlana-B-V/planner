@@ -1,4 +1,3 @@
-// Инициализация данных проектов. Загружаем из localStorage или используем дефолтные
 let projectsData = JSON.parse(localStorage.getItem('auratask_projects')) || {
     work: {
         name: '💼 Работа',
@@ -19,7 +18,6 @@ let calendarYear = new Date().getFullYear();
 let calendarMonth = new Date().getMonth();
 let selectedDateStr = new Date().toISOString().split('T')[0];
 
-// --- Анимация фона (Частицы и Сезоны) ---
 function getAutoSeason() {
     const month = new Date().getMonth();
     if (month >= 2 && month <= 4) return 'spring';
@@ -108,7 +106,6 @@ function animateParticles() {
 initParticles();
 animateParticles();
 
-// --- Логика задач ---
 function saveProjects() { localStorage.setItem('auratask_projects', JSON.stringify(projectsData)); renderAll(); }
 function getActiveTasks() { return projectsData[currentCategory]?.tasks || []; }
 
@@ -122,20 +119,34 @@ function promptAddCategory() {
     }
 }
 
+function confirmDeleteCurrentCategory() {
+    const categoryKeys = Object.keys(projectsData);
+    if (categoryKeys.length <= 1) {
+        alert('Невозможно удалить последний оставшийся проект!');
+        return;
+    }
+    const projName = projectsData[currentCategory]?.name || 'эту группу';
+    document.getElementById('deleteCategoryPromptText').innerHTML = `Вы уверены, что хотите удалить проект <b>"${projName}"</b> со всеми вложенными задачами? Это действие необратимо.`;
+    document.getElementById('deleteCategoryModal').classList.remove('hidden-el');
+}
+
+function closeDeleteCategoryModal() {
+    document.getElementById('deleteCategoryModal').classList.add('hidden-el');
+}
+
+function executeDeleteCurrentCategory() {
+    delete projectsData[currentCategory];
+    const remainingKeys = Object.keys(projectsData);
+    currentCategory = remainingKeys[0];
+    closeDeleteCategoryModal();
+    saveProjects();
+}
+
 function findTaskAndMutate(taskList, id, callback) {
     for (let i = 0; i < taskList.length; i++) {
         if (taskList[i].id === id) return callback(taskList, i);
         if (taskList[i].subtasks && findTaskAndMutate(taskList[i].subtasks, id, callback)) return true;
     }
-}
-
-// Быстрое добавление задачи (на сегодня)
-function addQuickTask() {
-    const input = document.getElementById('quickTaskInput');
-    if(!input.value.trim()) return;
-    const today = new Date().toISOString().split('T')[0];
-    addTask(null, input.value, 'medium', today, today, '#6366f1');
-    input.value = '';
 }
 
 function addTask(parentId, text, priority, dateStr, endDateStr, colorHex) {
@@ -162,7 +173,6 @@ function toggleTask(id) { findTaskAndMutate(getActiveTasks(), id, (l, i) => { l[
 function toggleHideTask(id) { findTaskAndMutate(getActiveTasks(), id, (l, i) => { l[i].hidden = !l[i].hidden; return true; }); saveProjects(); }
 function deleteTask(id) { findTaskAndMutate(getActiveTasks(), id, (l, i) => { l.splice(i, 1); return true; }); saveProjects(); }
 
-// --- Работа с модальным окном (Детальное создание / редактирование) ---
 function openTaskModal(isEdit, taskId, parentId, currentData) {
     const modal = document.getElementById('taskActionModal');
     document.getElementById('modalActionTitleText').textContent = isEdit ? 'Редактировать задачу' : (parentId ? 'Новая подзадача' : 'Новая задача');
@@ -180,7 +190,6 @@ function openTaskModal(isEdit, taskId, parentId, currentData) {
 
 function closeTaskModal() { document.getElementById('taskActionModal').classList.add('hidden-el'); }
 
-// Обработка формы модального окна
 document.getElementById('modalActionForm')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const id = document.getElementById('modalTaskId').value;
@@ -188,7 +197,7 @@ document.getElementById('modalActionForm')?.addEventListener('submit', (e) => {
     const text = document.getElementById('modalTaskName').value;
     const start = document.getElementById('modalTaskStart').value;
     let end = document.getElementById('modalTaskEnd').value;
-    if (end < start) end = start; // Защита от неправильного ввода дат
+    if (end < start) end = start;
     const prio = document.getElementById('modalTaskPriority').value;
     const color = document.getElementById('modalTaskColor').value;
 
@@ -204,21 +213,21 @@ document.getElementById('modalActionForm')?.addEventListener('submit', (e) => {
     closeTaskModal();
 });
 
-// Автоматическая корректировка конечной даты, чтобы она не могла быть раньше начальной
-const modalTaskStart = document.getElementById('modalTaskStart');
-const modalTaskEnd = document.getElementById('modalTaskEnd');
-if(modalTaskStart && modalTaskEnd) {
-    modalTaskStart.addEventListener('change', () => { if(modalTaskEnd.value < modalTaskStart.value) modalTaskEnd.value = modalTaskStart.value; });
+function bindDateLogic(startId, endId) {
+    const st = document.getElementById(startId);
+    const ed = document.getElementById(endId);
+    if(st && ed) {
+        st.addEventListener('change', () => { if(ed.value < st.value) ed.value = st.value; });
+    }
 }
+bindDateLogic('taskDateInput', 'taskEndDateInput');
+bindDateLogic('modalTaskStart', 'modalTaskEnd');
 
-// --- Отрисовка интерфейса ---
 function renderTaskNode(task, depth) {
     if (task.hidden) return '';
     let badgeColor = task.priority === 'high' ? 'bg-rose-50 text-rose-600 border-rose-100' : task.priority === 'medium' ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-blue-50 text-blue-600 border-blue-100';
     const prioStr = task.priority === 'high' ? 'Высокий' : task.priority === 'medium' ? 'Средний' : 'Низкий';
     const priorityBadge = `<span class="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-md ${badgeColor} border">${prioStr}</span>`;
-    
-    // Красивый бейдж с отображением цвета задачи и периода дат
     const dateBadge = `<span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full shadow-sm" style="background-color: ${task.color || '#6366f1'}"></span>${task.date}${task.endDate && task.endDate !== task.date ? ' &rarr; ' + task.endDate : ''}</span>`;
     
     let subtasksHtml = task.subtasks?.length ? `<div class="space-y-2 mt-2">${task.subtasks.map(s => renderTaskNode(s, depth + 1)).join('')}</div>` : '';
@@ -260,7 +269,6 @@ function renderTimeline() {
 
     if (flatList.length === 0) { container.innerHTML = '<p class="text-xs text-slate-400 text-center py-12">Нет активных задач</p>'; return; }
 
-    // Определяем временные границы для графика
     let allTimes = flatList.flatMap(t => [new Date(t.date).getTime(), new Date(t.endDate || t.date).getTime()]);
     let minTime = Math.min(...allTimes); let maxTime = Math.max(...allTimes);
     if (maxTime - minTime < 86400000 * 5) { maxTime += 86400000 * 8; minTime -= 86400000 * 2; } 
@@ -276,7 +284,6 @@ function renderTimeline() {
 
     let html = `<div class="relative h-7 border-b border-slate-200 mb-4 px-2">${ticksHtml}</div><div class="relative space-y-3 flex-grow pb-2">${dateAxisLineHtml}`;
 
-    // Рендерим каждую полоску задачи с учетом её уникального цвета
     flatList.forEach(item => {
         let leftPercent = Math.max(0, Math.min(95, ((new Date(item.date).getTime() - minTime) / totalSpan) * 100));
         let rightPercent = Math.max(5, Math.min(100, ((new Date(item.endDate || item.date).getTime() - minTime) / totalSpan) * 100));
@@ -390,11 +397,24 @@ function renderAll() {
     renderCalendar(); if(currentTab==='timeline') renderTimeline();
 }
 
+document.getElementById('taskForm')?.addEventListener('submit', e => {
+    e.preventDefault();
+    addTask(null, document.getElementById('taskInput').value, document.getElementById('taskPriority').value, document.getElementById('taskDateInput').value, document.getElementById('taskEndDateInput').value, document.getElementById('taskColorInput').value);
+    e.target.reset(); 
+    const todayStr = new Date().toISOString().split('T')[0];
+    document.getElementById('taskDateInput').value = todayStr;
+    document.getElementById('taskEndDateInput').value = todayStr;
+    document.getElementById('taskColorInput').value = '#6366f1';
+});
+
 document.getElementById('searchInput')?.addEventListener('input', e => { searchQuery = e.target.value; renderAll(); });
 document.getElementById('seasonSelect')?.addEventListener('change', e => { currentSeasonSetting = e.target.value; localStorage.setItem('auratask_season', currentSeasonSetting); updateSeasonTheme(); initParticles(); });
 document.getElementById('clearCompletedBtn')?.addEventListener('click', () => { projectsData[currentCategory].tasks = projectsData[currentCategory].tasks.filter(t => !t.completed); saveProjects(); });
 
 window.onload = () => { 
+    const todayStr = new Date().toISOString().split('T')[0];
+    if(document.getElementById('taskDateInput')) document.getElementById('taskDateInput').value = todayStr;
+    if(document.getElementById('taskEndDateInput')) document.getElementById('taskEndDateInput').value = todayStr;
     if(document.getElementById('seasonSelect')) document.getElementById('seasonSelect').value = currentSeasonSetting;
     updateSeasonTheme(); renderAll(); 
 };
